@@ -1,0 +1,59 @@
+version: "3.9"
+services:                 
+  iperf3_querier_exporter:
+    image: "edgard/iperf3-exporter:latest"       
+    ports:                  
+       - "9579:9579"    
+    networks:
+      domonet:
+        ipv4_address: "172.18.0.101"
+  iperf3_responder:
+    image: "networkstatic/iperf3"
+    ports:
+      - "5201:5201"
+    networks:
+      domonet:
+        ipv4_address: "172.18.0.102"
+    command:  
+      - "-s"
+  iper3-client:
+    image: networkstatic/iperf3
+    command: ["sh","-c", "iperf3_responder", "-t", "5"] 
+      
+    networks:
+      domonet:
+        ipv4_address: "172.18.0.103"
+    depends_on:
+      - iperf3_responder
+    restart: always     
+  speedtest:
+    image: "jraviles/prometheus_speedtest:latest"
+    networks:
+      domonet:
+        ipv4_address: "172.18.0.106"
+    ports:
+      - "9516:9516"
+  prom:
+    image: "prom/prometheus"
+    ports:
+      - "9090:9090"
+    networks:
+      domonet:
+        ipv4_address: "172.18.0.104"
+    volumes:
+      - "./config:/etc/prometheus"
+      - "tsdb_persistent:/prometheus"
+  grafana-service:
+    image: grafana/grafana-enterprise
+    ports:
+      - "3001:3000"
+    networks:
+      domonet:
+        ipv4_address: "172.18.0.110"
+    depends_on:
+      - prom    
+volumes:
+  tsdb_persistent:
+networks:
+  domonet:
+    external: true     
